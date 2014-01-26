@@ -987,6 +987,7 @@ set(VRPN_SERVER_SOURCES
 	vrpn_Tracker_isense.C
 	vrpn_Tracker_Isotrak.C
 	vrpn_Tracker_JsonNet.C
+        vrpn_Tracker_Leap.C
 	vrpn_Tracker_Liberty.C
 	vrpn_Tracker_MotionNode.C
 	vrpn_Tracker_NDI_Polaris.C
@@ -1080,13 +1081,14 @@ set(VRPN_SERVER_PUBLIC_HEADERS
 	vrpn_Tracker_ButtonFly.h
 	vrpn_Tracker_Crossbow.h
 	vrpn_Tracker_DTrack.h
-	vrpn_Tracker_Fastrak.h
+        vrpn_Tracker_Fastrak.h
 	vrpn_Tracker_Filter.h
 	vrpn_Tracker_GameTrak.h
 	vrpn_Tracker_GPS.h
 	vrpn_Tracker_isense.h
 	vrpn_Tracker_Isotrak.h
 	vrpn_Tracker_JsonNet.h
+        vrpn_Tracker_Leap.h
 	vrpn_Tracker_Liberty.h
 	vrpn_Tracker_MotionNode.h
 	vrpn_Tracker_NDI_Polaris.h
