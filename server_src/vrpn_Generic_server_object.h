@@ -62,6 +62,7 @@ class vrpn_Generic_Server_Object
     int setup_Wanda (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_Dyna (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_Fastrak (char * & pch, char * line, FILE * config_file);
+    int setup_Tracker_Leap (char * & pch, char * line, FILE * config_file);
     int setup_Tracker_Isotrak (char * & pch, char * line, FILE * config_file);
     int setup_Tracker_Liberty (char * & pch, char * line, FILE * config_file);
     int setup_Tracker_LibertyHS (char * & pch, char * line, FILE * config_file);

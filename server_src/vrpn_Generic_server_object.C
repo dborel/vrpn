@@ -75,6 +75,7 @@
 #include "vrpn_Tracker_isense.h"
 #include "vrpn_Tracker_Isotrak.h"       // for vrpn_Tracker_Isotrak
 #include "vrpn_Tracker_JsonNet.h"
+#include "vrpn_Tracker_Leap.h"       // for vrpn_Tracker_Leap
 #include "vrpn_Tracker_Liberty.h"       // for vrpn_Tracker_Liberty
 #include "vrpn_Tracker_LibertyHS.h"     // for vrpn_Tracker_LibertyHS
 #include "vrpn_Tracker_MotionNode.h"
@@ -1366,6 +1367,40 @@ int vrpn_Generic_Server_Object::setup_Tracker_Fastrak (char * & pch, char * line
     }
 
   }
+
+  _devices->add(mytracker);
+
+  return 0;
+}
+
+int vrpn_Generic_Server_Object::setup_Tracker_Leap (char * & pch, char * line, FILE * config_file)
+{
+  char s2 [LINESIZE];
+  int numparms;
+
+  VRPN_CONFIG_NEXT();
+  // Get the arguments (class, tracker_name)
+  if ( (numparms = sscanf (pch, "%511s", s2)) < 1) {
+    fprintf (stderr, "Bad vrpn_Tracker_Fastrak line: %s\n%s\n",
+             line, pch);
+    return -1;
+  }
+
+  while (line[strlen (line) - 2] == '\\') {
+    // Read the VRPN_CONFIG_NEXT line
+    if (fgets (line, LINESIZE, config_file) == NULL) {
+      fprintf (stderr, "Ran past end of config file in Leap description\n");
+      return -1;
+    }
+  }
+
+  // Open the tracker
+
+  if (verbose) printf (
+      "Opening vrpn_Tracker_Leap: %s\n",
+      s2);
+
+  vrpn_Tracker_Leap	*mytracker = new vrpn_Tracker_Leap (s2, connection);
 
   _devices->add(mytracker);
 
@@ -4085,6 +4120,8 @@ vrpn_Generic_Server_Object::vrpn_Generic_Server_Object (vrpn_Connection *connect
         VRPN_CHECK (setup_Tracker_Dyna);
       } else if (VRPN_ISIT ("vrpn_Tracker_Fastrak")) {
         VRPN_CHECK (setup_Tracker_Fastrak);
+      } else if (VRPN_ISIT ("vrpn_Tracker_Leap")) {
+        VRPN_CHECK (setup_Tracker_Leap);
       } else if (VRPN_ISIT ("vrpn_Tracker_NDI_Polaris")) {
         VRPN_CHECK (setup_Tracker_NDI_Polaris);
       } else if (VRPN_ISIT ("vrpn_Tracker_Isotrak")) {
