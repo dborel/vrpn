@@ -975,6 +975,7 @@ set(VRPN_SERVER_SOURCES
 	vrpn_Joylin.C
 	vrpn_Joywin32.C
 	vrpn_Keyboard.C
+        vrpn_Leap.C
 	vrpn_LUDL.C
 	vrpn_Logitech_Controller_Raw.C
 	vrpn_Magellan.C
@@ -1001,8 +1002,7 @@ set(VRPN_SERVER_SOURCES
 	vrpn_Tracker_GPS.C
 	vrpn_Tracker_isense.C
 	vrpn_Tracker_Isotrak.C
-	vrpn_Tracker_JsonNet.C
-        vrpn_Tracker_Leap.C
+        vrpn_Tracker_JsonNet.C
 	vrpn_Tracker_Liberty.C
 	vrpn_Tracker_MotionNode.C
 	vrpn_Tracker_NDI_Polaris.C
@@ -1072,6 +1072,7 @@ set(VRPN_SERVER_PUBLIC_HEADERS
 	vrpn_Joylin.h
 	vrpn_Joywin32.h
 	vrpn_Keyboard.h
+        vrpn_Leap.h
 	vrpn_Logitech_Controller_Raw.h
 	vrpn_LUDL.h
 	vrpn_Magellan.h
@@ -1102,8 +1103,7 @@ set(VRPN_SERVER_PUBLIC_HEADERS
 	vrpn_Tracker_GPS.h
 	vrpn_Tracker_isense.h
 	vrpn_Tracker_Isotrak.h
-	vrpn_Tracker_JsonNet.h
-        vrpn_Tracker_Leap.h
+        vrpn_Tracker_JsonNet.h
 	vrpn_Tracker_Liberty.h
 	vrpn_Tracker_MotionNode.h
 	vrpn_Tracker_NDI_Polaris.h

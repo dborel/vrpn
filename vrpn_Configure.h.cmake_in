@@ -293,6 +293,12 @@
 //#define VRPN_USE_WIIUSE
 #cmakedefine VRPN_USE_WIIUSE
 
+//------------------------
+// Instructs VRPN to compile code for the Leap Motion controller,
+// getting access to it through the Leap SDK in Windows and Linux.
+//#define VRPN_USE_LEAP
+#cmakedefine VRPN_USE_LEAP
+
 // Instructs VRPN to compile code to handle Hillcrest Labs' Freespace
 // devices such as the Loop, and FRCM.  You will also need the libfreespace
 // library which is available at http://libfreespace.hillcrestlabs.com/content/download.
@@ -423,7 +429,7 @@
 
 #define VRPN_PHASESPACE_LIB_PATH "../../phasespace/"
 
-#define VRPN_LEAP_H <Leap.h>
+#define VRPN_LEAP_HEADER <Leap.h>
 
 #define VRPN_WIIUSE_H <wiiuse.h>
 #define VRPN_WIIUSE_LIB_PATH "F:/taylorr/STM/src/wiiuse_v0.12/src"
