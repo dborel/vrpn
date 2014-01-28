@@ -1,0 +1,82 @@
+# - try to find Leap library
+#
+# Cache Variables: (probably not for direct use in your scripts)
+#  LEAP_INCLUDE_DIR
+#
+# Non-cache variables you might use in your CMakeLists.txt:
+#  LEAP_FOUND
+#  LEAP_INCLUDE_DIRS
+#  LEAP_LIBRARIES
+#  LEAP_RUNTIME_LIBRARIES - aka the dll for installing
+#  LEAP_RUNTIME_LIBRARY_DIRS
+#
+# Requires these CMake modules:
+#  FindPackageHandleStandardArgs (known included with CMake >=2.6.2)
+#
+# Original Author:
+# 2009-2010 Ryan Pavlik <rpavlik@iastate.edu> <abiryan@ryand.net>
+# http://academic.cleardefinition.com
+# Iowa State University HCI Graduate Program/VRAC
+#
+# Copyright Iowa State University 2009-2010.
+# Distributed under the Boost Software License, Version 1.0.
+# (See accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+set(LEAP_ROOT_DIR
+	"${LEAP_ROOT_DIR}"
+	CACHE
+	PATH
+	"Directory to search for Leap")
+
+if(CMAKE_SIZEOF_VOID_P MATCHES "8")
+	set(_LIBSUFFIXES /x64)
+else()
+	set(_LIBSUFFIXES /x86)
+endif()
+
+if(WIN32)
+	set(_LIBBASENAME libLeap.dll)
+else()
+	set(_LIBBASENAME libLeap.so)
+endif()
+
+find_path(LEAP_INCLUDE_DIR
+	NAMES
+	Leap.h
+	HINTS
+	PATHS
+	"${LEAP_ROOT_DIR}"
+	PATH_SUFFIXES
+	include/)
+
+set(_deps_check)
+
+find_file(LEAP_RUNTIME_LIBRARY
+	NAMES
+	${_LIBBASENAME}
+	HINTS
+	"${LEAP_INCLUDE_DIR}/../lib"
+	PATH_SUFFIXES
+	${_LIBSUFFIXES})
+
+set(LEAP_RUNTIME_LIBRARIES "${LEAP_RUNTIME_LIBRARY}")
+get_filename_component(LEAP_RUNTIME_LIBRARY_DIRS
+	"${LEAP_RUNTIME_LIBRARY}"
+	PATH)
+list(APPEND _deps_check LEAP_RUNTIME_LIBRARY)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Leap
+	DEFAULT_MSG
+	LEAP_INCLUDE_DIR
+	LEAP_RUNTIME_LIBRARY
+	${_deps_check})
+
+if(LEAP_FOUND)
+	set(LEAP_INCLUDE_DIRS "${LEAP_INCLUDE_DIR}")
+	mark_as_advanced(LEAP_ROOT_DIR)
+endif()
+
+mark_as_advanced(LEAP_INCLUDE_DIR
+	LEAP_RUNTIME_LIBRARY)

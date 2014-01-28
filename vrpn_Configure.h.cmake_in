@@ -423,6 +423,8 @@
 
 #define VRPN_PHASESPACE_LIB_PATH "../../phasespace/"
 
+#define VRPN_LEAP_H <Leap.h>
+
 #define VRPN_WIIUSE_H <wiiuse.h>
 #define VRPN_WIIUSE_LIB_PATH "F:/taylorr/STM/src/wiiuse_v0.12/src"
 

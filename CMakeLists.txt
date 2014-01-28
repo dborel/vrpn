@@ -487,6 +487,21 @@ endif()
 
 
 ###
+# Leap
+###
+find_package(Leap)
+option_requires(VRPN_USE_LEAP
+        "Build with Leap library support"
+        ${DEFAULT_OFF_IF_SUBPROJECT}
+        LEAP_FOUND)
+
+if(VRPN_USE_LEAP)
+        include_directories(${LEAP_INCLUDE_DIRS})
+        list(APPEND SERVER_EXTRA_LIBS ${LEAP_RUNTIME_LIBRARY})
+endif()
+
+
+###
 # WiiUse
 ###
 find_package(WiiUse)

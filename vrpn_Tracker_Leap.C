@@ -1,16 +1,8 @@
-// vrpn_Tracker_Fastrak.C
-//	This file contains the code to operate a Polhemus Fastrak Tracker.
-// This file is based on the vrpn_3Space.C file, with modifications made
-// to allow it to operate a Fastrak instead. The modifications are based
-// on the old version of the Fastrak driver, which had been mainly copied
-// from the Trackerlib driver and was very difficult to understand.
-//	This version was written in the Summer of 1999 by Russ Taylor.
-//	Modifications were made to this version to allow it to run the
-// Intersense IS600 tracker; basically, this involved allowing the user
-// to set extra things in the reset routine, and to pause to let the tracker
-// handle the parameter-setting commands.
-//	Modifications were later made to support the IS-900 trackers,
-// including wands and styli.
+// vrpn_Tracker_Leap.C
+//	This file contains the code to operate a Leap Motion.
+// This file is based on the vrpn_Fastrak.C file, with modifications made
+// to allow it to operate a Leap instead.
+//	This version was written in the Summer of 1999 by Dave Borel.
 
 #include <ctype.h>                      // for isprint, isalpha
 #include <stdio.h>                      // for fprintf, sprintf, stderr, etc
@@ -28,22 +20,26 @@
 #include "vrpn_MessageMacros.h"         // for VRPN_MSG_INFO, VRPN_MSG_WARNING, VRPN_MSG_ERROR
 #include "vrpn_Tracker_Leap.h"
 
+#include VRPN_LEAP_H
+
 #define	INCHES_TO_METERS	(2.54/100.0)
+
+Leap::Controller* s_controller;
 
 vrpn_Tracker_Leap::vrpn_Tracker_Leap(const char *name, vrpn_Connection *c)
     : vrpn_Tracker(name, c)
 {
-    reset_time.tv_sec = reset_time.tv_usec = 0;
+    d_reset_time.tv_sec = d_reset_time.tv_usec = 0;
+    s_controller = new Leap::Controller();
 }
 
 vrpn_Tracker_Leap::~vrpn_Tracker_Leap()
 {
 }
 
-//   This routine will reset the tracker and set it to generate the types
-// of reports we want. It relies on the power-on configuration to set the
-// active sensors based on the 'Rcvr Select Switch', as described on page
-// 128 of the Fastrak manual printed November 1993.
+void vrpn_Tracker_Leap::mainloop()
+{
+}
 
 void vrpn_Tracker_Leap::reset()
 {

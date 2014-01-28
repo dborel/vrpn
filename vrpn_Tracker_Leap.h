@@ -27,14 +27,14 @@ class VRPN_API vrpn_Tracker_Leap : public vrpn_Tracker {
 
   ~vrpn_Tracker_Leap();
 
-  virtual void mainloop () {}
+  virtual void mainloop();
     
  protected:
 
   virtual int get_report(void);
   virtual void reset();
 
-  struct timeval reset_time;
+  struct timeval d_reset_time;
 };
 
 #endif
