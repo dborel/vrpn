@@ -13,15 +13,8 @@
 # Requires these CMake modules:
 #  FindPackageHandleStandardArgs (known included with CMake >=2.6.2)
 #
-# Original Author:
-# 2009-2010 Ryan Pavlik <rpavlik@iastate.edu> <abiryan@ryand.net>
-# http://academic.cleardefinition.com
-# Iowa State University HCI Graduate Program/VRAC
-#
-# Copyright Iowa State University 2009-2010.
-# Distributed under the Boost Software License, Version 1.0.
-# (See accompanying file LICENSE_1_0.txt or copy at
-# http://www.boost.org/LICENSE_1_0.txt)
+# Author:
+#  2014 Dave Borel <dave.borel@gmail.com>
 
 set(LEAP_ROOT_DIR
 	"${LEAP_ROOT_DIR}"
@@ -36,9 +29,11 @@ else()
 endif()
 
 if(WIN32)
-	set(_LIBBASENAME libLeap.dll)
+	set(_LIBBASENAME Leap.lib)
+	set(_DLLBASENAME Leap.dll)
 else()
 	set(_LIBBASENAME libLeap.so)
+	set(_DLLBASENAME libLeap.so)
 endif()
 
 find_path(LEAP_INCLUDE_DIR
@@ -52,11 +47,19 @@ find_path(LEAP_INCLUDE_DIR
 
 set(_deps_check)
 
-find_file(LEAP_RUNTIME_LIBRARY
+find_library(LEAP_LIBRARY
 	NAMES
 	${_LIBBASENAME}
+	PATHS
+	"${LEAP_ROOT_DIR}/lib"
+	PATH_SUFFIXES
+	"${_LIBSUFFIXES}")
+
+find_file(LEAP_RUNTIME_LIBRARY
+	NAMES
+	${_DLLBASENAME}
 	HINTS
-	"${LEAP_INCLUDE_DIR}/../lib"
+	"${LEAP_ROOT_DIR}/lib"
 	PATH_SUFFIXES
 	${_LIBSUFFIXES})
 

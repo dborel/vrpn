@@ -24,13 +24,10 @@
 
 #define	INCHES_TO_METERS	(2.54/100.0)
 
-Leap::Controller* s_controller;
-
 vrpn_Tracker_Leap::vrpn_Tracker_Leap(const char *name, vrpn_Connection *c)
     : vrpn_Tracker(name, c)
 {
     d_reset_time.tv_sec = d_reset_time.tv_usec = 0;
-    s_controller = new Leap::Controller();
 }
 
 vrpn_Tracker_Leap::~vrpn_Tracker_Leap()

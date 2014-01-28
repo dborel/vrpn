@@ -497,7 +497,7 @@ option_requires(VRPN_USE_LEAP
 
 if(VRPN_USE_LEAP)
         include_directories(${LEAP_INCLUDE_DIRS})
-        list(APPEND SERVER_EXTRA_LIBS ${LEAP_RUNTIME_LIBRARY})
+        list(APPEND SERVER_EXTRA_LIBS ${LEAP_LIBRARY})
 endif()
 
 
