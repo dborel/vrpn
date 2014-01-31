@@ -102,6 +102,7 @@ class vrpn_Generic_Server_Object
     int setup_Button_NI_DIO24 (char * & pch, char * line, FILE * /*config_file*/) ;
     int setup_Tracker_PhaseSpace (char * & pch, char * line, FILE * /*config_file*/) ;
     int setup_Tracker_NDI_Polaris (char * & pch, char * line, FILE * config_file) ;
+    int setup_Leap (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Logger (char * & pch, char * line, FILE * /*config_file*/) ;
     int setup_ImageStream (char * & pch, char * line, FILE * /*config_file*/) ;
     int setup_Tracker_MotionNode (char * & pch, char * line, FILE * /*config_file*/);

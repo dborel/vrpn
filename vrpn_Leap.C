@@ -24,19 +24,69 @@
 #include VRPN_LEAP_HEADER
 
 #define	INCHES_TO_METERS	(2.54/100.0)
-#define POINTABLE_COUNT     16
+
+const int MAX_HANDS = 2;
+const int MAX_FINGERS = 10;
+const int MAX_TOOLS = 4;
+const int MAX_POINTABLES = MAX_HANDS + MAX_FINGERS + MAX_TOOLS;
 
 class vrpn_Leap_Device{
     public:
-        vrpn_Leap_Device() : d_timestamp(0) { memset(d_ids, 0, POINTABLE_COUNT); }
+        vrpn_Leap_Device()
+			: d_timestamp(0)
+		{
+			memset(d_ids, -1, MAX_POINTABLES * sizeof(int32_t));
+			d_controller.setPolicyFlags(Leap::Controller::POLICY_BACKGROUND_FRAMES);
+		}
+
+		void ComputeIds()
+		{
+			memset(d_ids, -1, MAX_POINTABLES * sizeof(int32_t));
+
+			Leap::Frame frame = d_controller.frame();
+
+			//TODO: Enforce consistent finger/hand/tool ordering in channels.
+
+			Leap::HandList hands = frame.hands();
+			for (int i = 0; i < hands.count(); ++i)
+			{
+				if (i >= MAX_HANDS)
+					break;
+
+				d_ids[i] = hands[i].id();
+			}
+
+			Leap::FingerList fingers = frame.fingers();
+			for (int i = 0; i < fingers.count(); ++i)
+			{
+				if (i >= MAX_FINGERS)
+					break;
+
+				d_ids[MAX_HANDS + i] = fingers[i].id();
+			}
+
+			Leap::ToolList tools = frame.tools();
+			for (int i = 0; i < tools.count(); ++i)
+			{
+				if (i >= MAX_TOOLS)
+					break;
+
+				d_ids[MAX_HANDS + MAX_FINGERS + i] = tools[i].id();
+			}
+		}
+
         Leap::Controller d_controller;
         int64_t d_timestamp;
-        int32_t d_ids[POINTABLE_COUNT];
+        int32_t d_ids[MAX_POINTABLES];
 };
 
 vrpn_Leap::vrpn_Leap(const char *name, vrpn_Connection *c)
     : vrpn_Analog(name, c)
 {
+	vrpn_Analog::num_channel = 6 * MAX_POINTABLES;
+	memset(channel, 0, sizeof(channel));
+	memset(last, 0, sizeof(last));
+
     d_device = new vrpn_Leap_Device();
 }
 
@@ -47,6 +97,10 @@ vrpn_Leap::~vrpn_Leap()
 
 void vrpn_Leap::mainloop()
 {
+	server_mainloop();
+
+	d_device->ComputeIds();
+
     Leap::Frame frame = d_device->d_controller.frame();
 
     int64_t timestamp = frame.timestamp();
@@ -54,24 +108,44 @@ void vrpn_Leap::mainloop()
         return;
     d_device->d_timestamp = timestamp;
 
-    for (int i = 0; i < POINTABLE_COUNT; ++i)
+    for (int i = 0; i < MAX_POINTABLES; ++i)
     {
+		if (d_device->d_ids[i] == -1)
+			continue;
+		
         const Leap::Pointable& p = frame.pointable(d_device->d_ids[i]);
-        if (!p.isValid())
+        const Leap::Hand& h = frame.hand(d_device->d_ids[i]);
+        if (!p.isValid() && !h.isValid())
             continue;
 
-        Leap::Vector position = p.tipPosition();
-        Leap::Vector rotation = p.direction(); //TODO: Lookrotation.
+        Leap::Vector position = (h.isValid()) ? h.palmPosition() : p.tipPosition();
+        Leap::Vector d = (h.isValid()) ? h.direction() : p.direction();
+		Leap::Vector rotation(d.yaw(), d.pitch(), 0.0f);
 
         for (int j = 0; j < 3; ++j)
         {
             channel[6*i + j] = position[j];
             channel[6*i + j + 3] = rotation[j];
         }
-
-        //TODO: Save each pointable's pose into floats readable by AnalogFly.
-        //TODO: Enforce consistent finger/hand/tool ordering in channels.
     }
+
+    vrpn_gettimeofday(&_timestamp, NULL);
+
+	report_changes();
+}
+
+void vrpn_Leap::report_changes(vrpn_uint32 class_of_service)
+{
+	vrpn_Analog::timestamp = _timestamp;
+
+	vrpn_Analog::report_changes(class_of_service);
+}
+
+void vrpn_Leap::report(vrpn_uint32 class_of_service)
+{
+	vrpn_Analog::timestamp = _timestamp;
+
+	vrpn_Analog::report(class_of_service);
 }
 
 #endif

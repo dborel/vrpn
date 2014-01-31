@@ -76,6 +76,7 @@
 #include "vrpn_Tracker_isense.h"
 #include "vrpn_Tracker_Isotrak.h"       // for vrpn_Tracker_Isotrak
 #include "vrpn_Tracker_JsonNet.h"
+#include "vrpn_Leap.h"
 #include "vrpn_Tracker_Liberty.h"       // for vrpn_Tracker_Liberty
 #include "vrpn_Tracker_LibertyHS.h"     // for vrpn_Tracker_LibertyHS
 #include "vrpn_Tracker_MotionNode.h"
@@ -3262,6 +3263,33 @@ int vrpn_Generic_Server_Object::setup_ImageStream (char * & pch, char * line, FI
   return 0;  // successful completion
 }
 
+int vrpn_Generic_Server_Object::setup_Leap (char * & pch, char * line, FILE * /*config_file*/)
+{
+  char s2 [LINESIZE];
+
+  VRPN_CONFIG_NEXT();
+  // Get the arguments (wiimote_name, controller index)
+  int numParms = sscanf (pch, "%511s", s2);
+  if (numParms < 1) {
+    fprintf (stderr, "Bad vrpn_Leap line: %s\n", line);
+    return -1;
+  }
+
+#ifdef	VRPN_USE_LEAP
+  // Open the Leap
+  if (verbose) {
+    printf ("Opening vrpn_Leap: %s\n", s2);
+  }
+
+  _devices->add(new vrpn_Leap(s2, connection));
+
+  return 0;
+#else
+  fprintf (stderr, "vrpn_server: Can't open Leap: VRPN_USE_LEAP not defined in vrpn_Configure.h!\n");
+  return -1;
+#endif
+}
+
 int vrpn_Generic_Server_Object::setup_WiiMote (char * & pch, char * line, FILE * /*config_file*/)
 {
   char sBDADDR [LINESIZE];
@@ -4184,6 +4212,8 @@ vrpn_Generic_Server_Object::vrpn_Generic_Server_Object (vrpn_Connection *connect
         VRPN_CHECK (templated_setup_HID_device_name_only<vrpn_Xkeys_Jog_And_Shuttle>);
       } else if (VRPN_ISIT ("vrpn_Xkeys_XK3")) {
         VRPN_CHECK (templated_setup_HID_device_name_only<vrpn_Xkeys_XK3>);
+      } else if (VRPN_ISIT ("vrpn_Leap")) {
+        VRPN_CHECK (setup_Leap);
       } else if (VRPN_ISIT ("vrpn_Logitech_Extreme_3D_Pro")) {
         VRPN_CHECK (templated_setup_HID_device_name_only<vrpn_Logitech_Extreme_3D_Pro>);
       } else if (VRPN_ISIT ("vrpn_Saitek_ST290_Pro")) {

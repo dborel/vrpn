@@ -31,9 +31,12 @@ class VRPN_API vrpn_Leap : public vrpn_Analog {
   ~vrpn_Leap();
 
   virtual void mainloop();
+  virtual void report_changes(vrpn_uint32 class_of_service = vrpn_CONNECTION_LOW_LATENCY);
+  virtual void report(vrpn_uint32 class_of_service = vrpn_CONNECTION_LOW_LATENCY);
     
  protected:
   vrpn_Leap_Device* d_device;
+  struct timeval _timestamp;
 };
 
 #endif
