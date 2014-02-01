@@ -29,6 +29,7 @@ if(VRPN_BUILD_CLIENTS)
 		vrpn_print_devices.C
 		vrpn_print_performance.C
 		vrpn_print_messages.C
+		vrpn_gl_client.C
 	)
 
 	set(TEST_SOURCES
@@ -133,7 +134,8 @@ if(VRPN_BUILD_CLIENTS)
 	foreach(SOURCE ${CLIENTS_SOURCES})
 		get_filename_component(APP ${SOURCE} NAME_WE)
 		add_executable(${APP} ${SOURCE})
-		target_link_libraries(${APP} ${VRPN_CLIENT_LIBRARY})
+		target_link_libraries(${APP} ${VRPN_CLIENT_LIBRARY} 
+				${GLUT_glut_LIBRARY})
 
 		set_target_properties(${APP} PROPERTIES FOLDER Clients)
 
