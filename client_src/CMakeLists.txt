@@ -31,8 +31,8 @@ if(VRPN_BUILD_CLIENTS)
 		vrpn_print_messages.C
 	)
 
-	if(GLUT_FOUND)
-	    list(APPEND CLIENTS_SOURCES vrpn_gl_client.C)
+        if(GLUT_FOUND)
+            list(APPEND CLIENTS_SOURCES vrpn_gl_client_6dof.C vrpn_gl_client_headtracking.C)
 	endif()
 
 	set(TEST_SOURCES
@@ -140,7 +140,7 @@ if(VRPN_BUILD_CLIENTS)
 		target_link_libraries(${APP} ${VRPN_CLIENT_LIBRARY})
 
 		if(GLUT_FOUND)
-		    target_link_libraries(${APP} ${GLUT_glut_LIBRARY})
+                    target_link_libraries(${APP} ${GLUT_glut_LIBRARY} ${OPENGL_LIBRARIES})
 		endif()
 
 		set_target_properties(${APP} PROPERTIES FOLDER Clients)
