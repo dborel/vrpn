@@ -16,9 +16,11 @@ q_xyz_quat_type *tposquat;
 
 // Helper functions
 
-void compute_projection(qogl_matrix_type proj, const q_xyz_quat_type* camera_pose)
+void compute_frustum(qogl_matrix_type frustum, double left, double right, double top, double bottom, double zNear, double zFar)
 {
-//FIXME: Do the following.
+    if (frustum == NULL)
+        return;
+
 //    2 zNear
 //  ------------       0              A              0
 //  right - left
@@ -35,10 +37,38 @@ void compute_projection(qogl_matrix_type proj, const q_xyz_quat_type* camera_pos
 //                   B =  (top + bottom) / (top - bottom)
 //                   C = -(zFar + zNear) / (zFar - zNear)
 //                   D = -(2 zFar zNear) / (zFar - zNear)
+
+    double A = (right + left) / (right - left);
+    double B = (top + bottom) / (top - bottom);
+    double C = -(zFar + zNear) / (zFar - zNear);
+    double D = -(2.0 * zFar * zNear) / (zFar - zNear);
+    double E = (2.0 * zNear) / (right - left);
+    double F = (2 * zNear) / (top - bottom);
+
+    double result[] = {
+          E, 0.0,    A, 0.0,
+        0.0,   F,    B, 0.0,
+        0.0, 0.0,    C,   D,
+        0.0, 0.0, -1.0, 0.0};
+
+    memcpy(frustum, result, sizeof(result));
+}
+
+void compute_projection(qogl_matrix_type proj, const q_xyz_quat_type* camera_pose)
+{
+    if (camera_pose == NULL)
+        return;
+
+    //FIXME
+    double left, right, top, bottom, zNear, zFar;
+    compute_frustum(proj, left, right, top, bottom, zNear, zFar);
 }
 
 void update_perspective(const q_xyz_quat_type* camera_pose)
 {
+    if (camera_pose == NULL)
+        return;
+
     // Compute the current projection matrix.
 
     qogl_matrix_type proj;
@@ -139,7 +169,12 @@ void on_idle()
     // Let the tracker do its thing.
 
     tkr->mainloop();
+    
+    glutPostRedisplay();
+}
 
+void on_display()
+{
     // Render the scene.
 
     update_perspective(tposquat);
@@ -182,6 +217,7 @@ int main(int argc, char **argv)
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH) ;
   glutCreateWindow("VRPN GL Client Example");
   glutIdleFunc(on_idle);
+  glutDisplayFunc(on_display);
 
   init_graphics();
 

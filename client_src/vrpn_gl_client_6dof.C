@@ -134,12 +134,8 @@ void draw_tracker(q_xyz_quat_type* pq)
   glPopMatrix();
 }
 
-void on_idle()
+void on_display()
 {
-    // Let the tracker do its thing.
-
-    tkr->mainloop();
-
     // Render the scene.
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -148,6 +144,14 @@ void on_idle()
     draw_tracker(tposquat);
 
     glutSwapBuffers();
+}
+
+void on_idle()
+{
+    // Let the tracker do its thing.
+
+    tkr->mainloop();
+    glutPostRedisplay();
 }
 
 // Main entry point
@@ -184,6 +188,7 @@ int main(int argc, char **argv)
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH) ;
   glutCreateWindow("VRPN GL Client Example");
   glutIdleFunc(on_idle);
+  glutDisplayFunc(on_display);
 
   init_graphics();
 
