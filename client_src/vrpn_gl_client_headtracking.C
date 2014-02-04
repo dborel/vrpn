@@ -7,36 +7,34 @@
 #include <GL/glut.h>
 #include <stdio.h>
 
+const int LEFT_EYE = 0;
+const int RIGHT_EYE = 1;
+
 // This sample uses GLUT to render a grid on the XZ plane. The camera's pose and projection follow a Tracker.
 
 // Global variables
+
+double pupillary_distance = 0.06;
+double z_near = 0.01;
+double z_far = 100.0;
+q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
+double viewport_width = 4.2188;
+double viewport_height = 4.2188;
 
 vrpn_Tracker_Remote *tkr;
 q_xyz_quat_type *tposquat;
 
 // Helper functions
 
+void activate_target(int eye)
+{
+    //FIXME: Handle side-by-side, top-bottom, and quad-buffer stereo.
+}
+
 void compute_frustum(qogl_matrix_type frustum, double left, double right, double top, double bottom, double zNear, double zFar)
 {
     if (frustum == NULL)
         return;
-
-//    2 zNear
-//  ------------       0              A              0
-//  right - left
-//
-//                  2 zNear
-//      0         ------------        B              0
-//                top - bottom
-//
-//      0              0              C              D
-//
-//      0              0              -1             0
-//
-//                   A =  (right + left) / (right - left)
-//                   B =  (top + bottom) / (top - bottom)
-//                   C = -(zFar + zNear) / (zFar - zNear)
-//                   D = -(2 zFar zNear) / (zFar - zNear)
 
     double A = (right + left) / (right - left);
     double B = (top + bottom) / (top - bottom);
@@ -46,47 +44,65 @@ void compute_frustum(qogl_matrix_type frustum, double left, double right, double
     double F = (2 * zNear) / (top - bottom);
 
     double result[] = {
-          E, 0.0,    A, 0.0,
-        0.0,   F,    B, 0.0,
-        0.0, 0.0,    C,   D,
-        0.0, 0.0, -1.0, 0.0};
+        E, 0,  A, 0,
+        0, F,  B, 0,
+        0, 0,  C, D,
+        0, 0, -1, 0};
 
     memcpy(frustum, result, sizeof(result));
 }
 
-void compute_projection(qogl_matrix_type proj, const q_xyz_quat_type* camera_pose)
+void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
 {
-    if (camera_pose == NULL)
-        return;
-
-    //FIXME
-    double left, right, top, bottom, zNear, zFar;
-    compute_frustum(proj, left, right, top, bottom, zNear, zFar);
+    //FIXME: Account for PD offset.
+    double left = -0.5 * viewport_width;
+    double right = 0.5 * viewport_width;
+    double top = 0.5 * viewport_height;
+    double bottom = -0.5 * viewport_height;
+    compute_frustum(proj, left, right, top, bottom, z_near, z_far);
 }
 
-void update_perspective(const q_xyz_quat_type* camera_pose)
+void update_perspective(int eye)
 {
-    if (camera_pose == NULL)
+    if (eye != LEFT_EYE && eye != RIGHT_EYE)
         return;
+
+    q_vec_type eye_pos;
+
+    q_vec_type pd_offset = {(eye == LEFT_EYE) ? -pupillary_distance : pupillary_distance, 0.0, 0.0};
+    q_xform(pd_offset, tposquat->quat, pd_offset);
+    q_vec_add(eye_pos, tposquat->xyz, pd_offset);
 
     // Compute the current projection matrix.
 
     qogl_matrix_type proj;
-    compute_projection(proj, camera_pose);
+    compute_projection(proj, eye_pos);
 
     glMatrixMode(GL_PROJECTION);
-    glLoadMatrixd(proj);
+    glLoadIdentity();
+    //FIXME: glLoadMatrixd(proj);    
+    gluPerspective(45.0, 1.0, 0.01, 10.0);
 
     // Compute the current view matrix.
 
-    q_xyz_quat_type inv_camera_pose;
-    q_xyz_quat_invert(&inv_camera_pose, camera_pose);
+    q_vec_type up = {0, 1, 0};
+    q_type viewport_inv_rot;
+    q_invert(viewport_inv_rot, viewport_pose.quat);
+    q_xform(up, viewport_inv_rot, up);
+    q_xform(up, tposquat->quat, up);
 
-    qogl_matrix_type view;
-    q_xyz_quat_to_ogl_matrix(view, &inv_camera_pose);
+    q_vec_type look_at;
+    q_vec_subtract(look_at, viewport_pose.xyz, tposquat->xyz);
+    q_vec_add(look_at, eye_pos, look_at);
 
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixd(view);
+    //FIXME
+    //glMatrixMode(GL_MODELVIEW);
+    //gluLookAt(eye_pos[Q_X], eye_pos[Q_Y], eye_pos[Q_Z],
+    //    look_at[Q_X], look_at[Q_Y], look_at[Q_Z],
+    //    up[Q_X], up[Q_Y], up[Q_Z]);
+    gluLookAt( eye_pos[Q_X], eye_pos[Q_Y] + 0.1, eye_pos[Q_Z] - 5.0, // eye position
+               0.0,  0.0,  0.0,     // look at this point
+               0.0,  1.0,  0.0);    // up direction
 }
 
 void VRPN_CALLBACK handle_tracker(void *userdata, const vrpn_TRACKERCB t)
@@ -175,13 +191,25 @@ void on_idle()
 
 void on_display()
 {
-    // Render the scene.
+    // Draw from the left eye's perspective.
 
-    update_perspective(tposquat);
+    activate_target(LEFT_EYE);
+
+    update_perspective(LEFT_EYE);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     draw_axes();
+
+    // Draw from the right eye's perspective.
+
+    //activate_target(RIGHT_EYE);
+
+    //update_perspective(RIGHT_EYE);
+
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //draw_axes();
 
     glutSwapBuffers();
 }
@@ -212,7 +240,7 @@ int main(int argc, char **argv)
 
   // Initialize GLUT and create window.
 
-  glutInitWindowSize(600, 600) ;
+  glutInitWindowSize(600, 600);
   glutInit(&argc, argv) ;
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH) ;
   glutCreateWindow("VRPN GL Client Example");
