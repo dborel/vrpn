@@ -68,45 +68,28 @@ void compute_perspective(qogl_matrix_type proj, double fovY, double aspect, doub
 void compute_look_at(qogl_matrix_type view, const q_vec_type eye_pos,
                      const q_vec_type look_at_pos, const q_vec_type up_dir)
 {
-   qogl_matrix_type result;
-
    q_vec_type forward;
-   forward[0] = look_at_pos[0] - eye_pos[0];
-   forward[1] = look_at_pos[1] - eye_pos[1];
-   forward[2] = look_at_pos[2] - eye_pos[2];
-   q_normalize(forward, forward);
+   q_vec_subtract(forward, look_at_pos, eye_pos);
+   q_vec_normalize(forward, forward);
 
    //Side = forward x up
    q_vec_type right;
    q_vec_cross_product(right, forward, up_dir);
-   q_normalize(right, right);
+   q_vec_normalize(right, right);
 
    //Recompute up as: up = side x forward so they're all orthogonal.
    q_vec_type up;
-   q_vec_cross_product(up, right, forward);\
+   q_vec_cross_product(up, right, forward);
+   
+   qogl_matrix_type result = {
+       right[0],   up[0],      -forward[0], 0,
+       right[1],   up[1],      -forward[1], 0,
+       right[2],   up[2],      -forward[2], 0,
+       eye_pos[0], eye_pos[1], eye_pos[2],  1
+   };
 
-   result[0] = right[0];
-   result[4] = right[1];
-   result[8] = right[2];
-   result[12] = 0.0;
-
-   result[1] = up[0];
-   result[5] = up[1];
-   result[9] = up[2];
-   result[13] = 0.0;
-
-   result[2] = -forward[0];
-   result[6] = -forward[1];
-   result[10] = -forward[2];
-   result[14] = 0.0;
-
-   result[3] = result[7] = result[11] = 0.0;
-   result[15] = 1.0;
-
-   q_xyz_quat_type trans = {{eye_pos[0], eye_pos[1], eye_pos[2]}, {0, 0, 0, 1}};
-   q_xyz_quat_to_ogl_matrix(result, &trans);
-
-   memcpy(view, result, sizeof(result));
+   for (int i = 0; i < 16; ++i)
+       view[i] = result[i];
 }
 
 void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
@@ -154,7 +137,7 @@ void update_perspective(int eye)
 
     q_vec_type eye_pos;
 
-    q_vec_type pd_offset = {(eye == LEFT_EYE) ? -pupillary_distance : pupillary_distance, 0.0, 0.0};
+    q_vec_type pd_offset = {((eye == LEFT_EYE) ? -0.5 : 0.5) * pupillary_distance, 0.0, 0.0};
     q_xform(pd_offset, tracker_pose.quat, pd_offset);
     q_vec_add(eye_pos, tracker_pose.xyz, pd_offset);
 
@@ -181,7 +164,7 @@ void VRPN_CALLBACK handle_tracker(void *userdata, const vrpn_TRACKERCB t)
 
   // Transform the local tracker pose by the sensor pose to get a world pose.
 
-  q_vec_type pos = {0, 0, 0};
+  q_vec_type pos;
   q_xform(pos, sensor_pose.quat, t.pos);
   q_vec_add(pq->xyz, sensor_pose.quat, pos);
 
