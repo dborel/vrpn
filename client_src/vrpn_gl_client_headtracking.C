@@ -5,6 +5,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
+#include <math.h>
 #include <stdio.h>
 
 const int LEFT_EYE = 0;
@@ -21,8 +22,9 @@ q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
 double viewport_width = 4.2188;
 double viewport_height = 4.2188;
 
-vrpn_Tracker_Remote *tkr;
-q_xyz_quat_type *tposquat;
+vrpn_Tracker_Remote* tracker;
+q_xyz_quat_type sensor_pose = { {0, 0.1, -5}, {0, 0, 0, 1} };
+q_xyz_quat_type tracker_pose = { {0, 0, 0}, {0, 0, 0, 1} };
 
 // Helper functions
 
@@ -36,30 +38,111 @@ void compute_frustum(qogl_matrix_type frustum, double left, double right, double
     if (frustum == NULL)
         return;
 
-    double A = (right + left) / (right - left);
-    double B = (top + bottom) / (top - bottom);
-    double C = -(zFar + zNear) / (zFar - zNear);
-    double D = -(2.0 * zFar * zNear) / (zFar - zNear);
-    double E = (2.0 * zNear) / (right - left);
-    double F = (2 * zNear) / (top - bottom);
+    double x_2n = zNear + zNear;
+    double x_2nf = 2 * zNear * zFar;
+
+    double p_fn = zFar + zNear;
+    double m_nf = zNear - zFar; // ~ -m_fn
+
+    double p_rl = right + left;
+    double m_rl = right - left;
+    double p_tb = top + bottom;
+    double m_tb = top - bottom;
 
     double result[] = {
-        E, 0,  A, 0,
-        0, F,  B, 0,
-        0, 0,  C, D,
-        0, 0, -1, 0};
+        x_2n/m_rl, 0,         0,          0,
+        0,         x_2n/m_tb, 0,          0,
+        p_rl/m_rl, p_tb/m_tb, p_fn/m_nf,  -1,
+        0,         0,         x_2nf/m_nf, 0};
 
     memcpy(frustum, result, sizeof(result));
 }
 
+void compute_perspective(qogl_matrix_type proj, double fovY, double aspect, double zNear, double zFar)
+{
+    double fH = tan( fovY / 360 * Q_PI ) * zNear;
+    double fW = fH * aspect;
+    compute_frustum(proj, -fW, fW, -fH, fH, zNear, zFar);
+}
+
+void compute_look_at(qogl_matrix_type view, const q_vec_type eye_pos,
+                     const q_vec_type look_at_pos, const q_vec_type up_dir)
+{
+   qogl_matrix_type result;
+
+   q_vec_type forward;
+   forward[0] = look_at_pos[0] - eye_pos[0];
+   forward[1] = look_at_pos[1] - eye_pos[1];
+   forward[2] = look_at_pos[2] - eye_pos[2];
+   q_normalize(forward, forward);
+
+   //Side = forward x up
+   q_vec_type right;
+   q_vec_cross_product(right, forward, up_dir);
+   q_normalize(right, right);
+
+   //Recompute up as: up = side x forward so they're all orthogonal.
+   q_vec_type up;
+   q_vec_cross_product(up, right, forward);\
+
+   result[0] = right[0];
+   result[4] = right[1];
+   result[8] = right[2];
+   result[12] = 0.0;
+
+   result[1] = up[0];
+   result[5] = up[1];
+   result[9] = up[2];
+   result[13] = 0.0;
+
+   result[2] = -forward[0];
+   result[6] = -forward[1];
+   result[10] = -forward[2];
+   result[14] = 0.0;
+
+   result[3] = result[7] = result[11] = 0.0;
+   result[15] = 1.0;
+
+   q_xyz_quat_type trans = {{eye_pos[0], eye_pos[1], eye_pos[2]}, {0, 0, 0, 1}};
+   q_xyz_quat_to_ogl_matrix(result, &trans);
+
+   memcpy(view, result, sizeof(result));
+}
+
 void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
 {
-    //FIXME: Account for PD offset.
-    double left = -0.5 * viewport_width;
-    double right = 0.5 * viewport_width;
-    double top = 0.5 * viewport_height;
-    double bottom = -0.5 * viewport_height;
+    // Find the display in camera space. Note its rotation matches the camera's.
+
+    q_vec_type local_display_pos;
+    q_vec_subtract(local_display_pos, viewport_pose.xyz, eye_pos);
+    q_type inv_viewport_rot;
+    q_invert(inv_viewport_rot, viewport_pose.quat);
+    q_xform(local_display_pos, inv_viewport_rot, local_display_pos);
+
+    double near_plane = z_near / local_display_pos[Q_Z];
+
+    // Find the frustum bounds in camera space.
+
+    double left    = near_plane * (local_display_pos[Q_X] - 0.5 * viewport_width);
+    double right   = near_plane * (local_display_pos[Q_X] + 0.5 * viewport_width);
+    double bottom  = near_plane * (local_display_pos[Q_Y] - 0.5 * viewport_height);
+    double top     = near_plane * (local_display_pos[Q_Y] + 0.5 * viewport_height);
+
     compute_frustum(proj, left, right, top, bottom, z_near, z_far);
+}
+
+void compute_view(qogl_matrix_type view, const q_vec_type eye_pos)
+{
+    // Make the camera match the display's rotation.
+
+    q_vec_type up = {0, 1, 0};
+    q_xform(up, viewport_pose.quat, up);
+
+    q_vec_type look_at = {0, 0, -1};
+    q_xform(look_at, viewport_pose.quat, look_at);
+    q_vec_add(look_at, eye_pos, look_at);
+
+    compute_look_at(view, eye_pos, look_at, up);
 }
 
 void update_perspective(int eye)
@@ -67,55 +150,42 @@ void update_perspective(int eye)
     if (eye != LEFT_EYE && eye != RIGHT_EYE)
         return;
 
+    // Find the world-space position of the eye we're rendering from.
+
     q_vec_type eye_pos;
 
     q_vec_type pd_offset = {(eye == LEFT_EYE) ? -pupillary_distance : pupillary_distance, 0.0, 0.0};
-    q_xform(pd_offset, tposquat->quat, pd_offset);
-    q_vec_add(eye_pos, tposquat->xyz, pd_offset);
+    q_xform(pd_offset, tracker_pose.quat, pd_offset);
+    q_vec_add(eye_pos, tracker_pose.xyz, pd_offset);
 
     // Compute the current projection matrix.
 
+    glMatrixMode(GL_PROJECTION);
+
     qogl_matrix_type proj;
     compute_projection(proj, eye_pos);
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    //FIXME: glLoadMatrixd(proj);    
-    gluPerspective(45.0, 1.0, 0.01, 10.0);
+    glLoadMatrixd(proj);
 
     // Compute the current view matrix.
 
-    q_vec_type up = {0, 1, 0};
-    q_type viewport_inv_rot;
-    q_invert(viewport_inv_rot, viewport_pose.quat);
-    q_xform(up, viewport_inv_rot, up);
-    q_xform(up, tposquat->quat, up);
+    glMatrixMode(GL_MODELVIEW);
 
-    q_vec_type look_at;
-    q_vec_subtract(look_at, viewport_pose.xyz, tposquat->xyz);
-    q_vec_add(look_at, eye_pos, look_at);
-
-    //FIXME
-    //glMatrixMode(GL_MODELVIEW);
-    //gluLookAt(eye_pos[Q_X], eye_pos[Q_Y], eye_pos[Q_Z],
-    //    look_at[Q_X], look_at[Q_Y], look_at[Q_Z],
-    //    up[Q_X], up[Q_Y], up[Q_Z]);
-    gluLookAt( eye_pos[Q_X], eye_pos[Q_Y] + 0.1, eye_pos[Q_Z] - 5.0, // eye position
-               0.0,  0.0,  0.0,     // look at this point
-               0.0,  1.0,  0.0);    // up direction
+    qogl_matrix_type view;
+    compute_view(view, eye_pos);
+    glLoadMatrixd(view);
 }
 
 void VRPN_CALLBACK handle_tracker(void *userdata, const vrpn_TRACKERCB t)
 {
-  q_xyz_quat_type *pq = (q_xyz_quat_type *) userdata;
+  q_xyz_quat_type* pq = (q_xyz_quat_type*) userdata;
 
-  pq->xyz[Q_X] = t.pos[Q_X];
-  pq->xyz[Q_Y] = t.pos[Q_Y];
-  pq->xyz[Q_Z] = t.pos[Q_Z];
-  pq->quat[Q_X]= t.quat[Q_X];
-  pq->quat[Q_Y] = t.quat[Q_Y];
-  pq->quat[Q_Z] = t.quat[Q_Z];
-  pq->quat[Q_W] = t.quat[Q_W];
+  // Transform the local tracker pose by the sensor pose to get a world pose.
+
+  q_vec_type pos = {0, 0, 0};
+  q_xform(pos, sensor_pose.quat, t.pos);
+  q_vec_add(pq->xyz, sensor_pose.quat, pos);
+
+  q_mult(pq->quat, sensor_pose.quat, t.quat);
 }
 
 void init_graphics()
@@ -123,17 +193,6 @@ void init_graphics()
   // Set up OpenGL.
 
   glShadeModel(GL_SMOOTH);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(45.0, 1.0, 0.01, 10.0);
-  gluLookAt( 0.0,  0.1, -5.0,     // eye pos
-             0.0,  0.0,  0.0,     // look at this point
-             0.0,  1.0,  0.0);    // up direction
-
-  glClearColor(0.0, 0.0, 0.0, 0.0);
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
   glEnable(GL_DEPTH_TEST);
 
   // Set up some lighting and materials.
@@ -184,7 +243,7 @@ void on_idle()
 {
     // Let the tracker do its thing.
 
-    tkr->mainloop();
+    tracker->mainloop();
     
     glutPostRedisplay();
 }
@@ -233,10 +292,9 @@ int main(int argc, char **argv)
 
   // Initialize global variables.
 
-  tkr = new vrpn_Tracker_Remote(server);
+  tracker = new vrpn_Tracker_Remote(server);
 
-  tposquat = new q_xyz_quat_type;
-  tkr->register_change_handler(tposquat, handle_tracker);
+  tracker->register_change_handler(&tracker_pose, handle_tracker);
 
   // Initialize GLUT and create window.
 
