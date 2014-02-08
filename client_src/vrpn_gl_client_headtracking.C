@@ -3,27 +3,38 @@
 #include "quat.h"
 
 #include <GL/gl.h>
-#include <GL/glu.h>
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
 
-const int LEFT_EYE = 0;
-const int RIGHT_EYE = 1;
+typedef enum {
+    CENTER = -1,
+    LEFT_EYE = 0,
+    RIGHT_EYE = 1
+} eye_t;
+
+typedef enum {
+    NONE = -1,
+    QUAD_BUFFER = 0,
+    LEFT_RIGHT = 1,
+    TOP_BOTTOM = 2
+    //TODO: Support interlaced, etc.
+} stereo_mode_t;
 
 // This sample uses GLUT to render a grid on the XZ plane. The camera's pose and projection follow a Tracker.
 
 // Global variables
 
+stereo_mode_t stereo_mode = QUAD_BUFFER;
 double pupillary_distance = 0.06;
 double z_near = 0.01;
 double z_far = 100.0;
 q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
-double viewport_width = 4.2188;
-double viewport_height = 4.2188;
+double viewport_width = 0.1;
+double viewport_height = 0.1;
 
 vrpn_Tracker_Remote* tracker;
-q_xyz_quat_type sensor_pose = { {0, 0.1, -5}, {0, 0, 0, 1} };
+q_xyz_quat_type sensor_pose = { {0, 0.1, 5}, {0, 0, 0, 1} };
 q_xyz_quat_type tracker_pose = { {0, 0, 0}, {0, 0, 0, 1} };
 
 // Helper functions
@@ -42,7 +53,7 @@ void compute_frustum(qogl_matrix_type frustum, double left, double right, double
     double x_2nf = 2 * zNear * zFar;
 
     double p_fn = zFar + zNear;
-    double m_nf = zNear - zFar; // ~ -m_fn
+    double m_nf = zNear - zFar;
 
     double p_rl = right + left;
     double m_rl = right - left;
@@ -72,12 +83,12 @@ void compute_look_at(qogl_matrix_type view, const q_vec_type eye_pos,
    q_vec_subtract(forward, look_at_pos, eye_pos);
    q_vec_normalize(forward, forward);
 
-   //Side = forward x up
+   // Right = forward x up
    q_vec_type right;
    q_vec_cross_product(right, forward, up_dir);
    q_vec_normalize(right, right);
 
-   //Recompute up as: up = side x forward so they're all orthogonal.
+   // Recompute up as: up = side x forward so they're all orthogonal.
    q_vec_type up;
    q_vec_cross_product(up, right, forward);
    
@@ -128,18 +139,18 @@ void compute_view(qogl_matrix_type view, const q_vec_type eye_pos)
     compute_look_at(view, eye_pos, look_at, up);
 }
 
-void update_perspective(int eye)
+void update_perspective(eye_t eye)
 {
     if (eye != LEFT_EYE && eye != RIGHT_EYE)
         return;
 
     // Find the world-space position of the eye we're rendering from.
 
-    q_vec_type eye_pos;
-
-    q_vec_type pd_offset = {((eye == LEFT_EYE) ? -0.5 : 0.5) * pupillary_distance, 0.0, 0.0};
-    q_xform(pd_offset, tracker_pose.quat, pd_offset);
-    q_vec_add(eye_pos, tracker_pose.xyz, pd_offset);
+    double pd_offset = (eye == CENTER) ? 0.0 :
+        ((eye == LEFT_EYE) ? -0.5 : 0.5) * pupillary_distance;
+    q_vec_type eye_pos = {pd_offset, 0.0, 0.0};
+    q_xform(eye_pos, tracker_pose.quat, eye_pos);
+    q_vec_add(eye_pos, tracker_pose.xyz, eye_pos);
 
     // Compute the current projection matrix.
 

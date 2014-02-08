@@ -120,7 +120,7 @@ void vrpn_Leap::mainloop()
 
         Leap::Vector position = (h.isValid()) ? h.palmPosition() : p.tipPosition();
         Leap::Vector d = (h.isValid()) ? h.direction() : p.direction();
-		Leap::Vector rotation(d.yaw(), d.pitch(), 0.0f);
+		Leap::Vector rotation(d.pitch(), d.yaw(), 0);
 
         for (int j = 0; j < 3; ++j)
         {
