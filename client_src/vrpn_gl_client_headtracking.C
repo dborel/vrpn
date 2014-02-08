@@ -30,8 +30,11 @@ double pupillary_distance = 0.06;
 double z_near = 0.01;
 double z_far = 100.0;
 q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
-double viewport_width = 0.1;
-double viewport_height = 0.1;
+int buffer_width = 800;
+int buffer_height = 600;
+double dpi = 1000;
+double viewport_width = buffer_width / dpi;
+double viewport_height = buffer_height / dpi;
 
 vrpn_Tracker_Remote* tracker;
 q_xyz_quat_type sensor_pose = { {0, 0.1, 5}, {0, 0, 0, 1} };
@@ -39,9 +42,31 @@ q_xyz_quat_type tracker_pose = { {0, 0, 0}, {0, 0, 0, 1} };
 
 // Helper functions
 
-void activate_target(int eye)
+void activate_target(eye_t eye)
 {
-    //FIXME: Handle side-by-side, top-bottom, and quad-buffer stereo.
+    // Select the right buffer and set the viewport position and size.
+
+    if (stereo_mode == QUAD_BUFFER)
+    {
+        int buffer_id = eye == RIGHT_EYE ? GL_BACK_RIGHT : GL_BACK_LEFT;
+        glDrawBuffer(buffer_id);
+
+        glViewport(0, 0, buffer_width, buffer_height);
+    }
+    else if (stereo_mode == LEFT_RIGHT)
+    {
+        int x = (eye == RIGHT_EYE) ? 0.5 * buffer_width : buffer_width;
+        glViewport(x, 0, 0.5 * buffer_width, buffer_height);
+    }
+    else if (stereo_mode == TOP_BOTTOM)
+    {
+        int y = (eye == RIGHT_EYE) ? 0.5 * buffer_height : buffer_height;
+        glViewport(0, y, buffer_width, 0.5 * buffer_height);
+    }
+    else
+    {
+        glViewport(0, 0, buffer_width, buffer_height);
+    }
 }
 
 void compute_frustum(qogl_matrix_type frustum, double left, double right, double top, double bottom, double zNear, double zFar)
@@ -117,6 +142,7 @@ void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
 
     // Find the frustum bounds in camera space.
 
+    //TODO: Adjust for side-by-side and top-bottom stereo?
     double left    = near_plane * (local_display_pos[Q_X] - 0.5 * viewport_width);
     double right   = near_plane * (local_display_pos[Q_X] + 0.5 * viewport_width);
     double bottom  = near_plane * (local_display_pos[Q_Y] - 0.5 * viewport_height);
@@ -292,9 +318,12 @@ int main(int argc, char **argv)
 
   // Initialize GLUT and create window.
 
-  glutInitWindowSize(600, 600);
-  glutInit(&argc, argv) ;
-  glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH) ;
+  glutInitWindowSize(buffer_width, buffer_height);
+  glutInit(&argc, argv);
+  int display_mode = GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH;
+  if (stereo_mode == QUAD_BUFFER)
+      display_mode |= GLUT_STEREO;
+  glutInitDisplayMode(display_mode) ;
   glutCreateWindow("VRPN GL Client Example");
   glutIdleFunc(on_idle);
   glutDisplayFunc(on_display);
