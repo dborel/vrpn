@@ -8,13 +8,13 @@
 #include <stdio.h>
 
 typedef enum {
-    CENTER = -1,
+    CENTER_EYE = -1,
     LEFT_EYE = 0,
     RIGHT_EYE = 1
 } eye_t;
 
 typedef enum {
-    NONE = -1,
+    NO_STEREO = -1,
     QUAD_BUFFER = 0,
     LEFT_RIGHT = 1,
     TOP_BOTTOM = 2
@@ -25,7 +25,7 @@ typedef enum {
 
 // Global variables
 
-stereo_mode_t stereo_mode = QUAD_BUFFER;
+stereo_mode_t stereo_mode = NO_STEREO;
 double pupillary_distance = 0.06;
 double z_near = 0.01;
 double z_far = 100.0;
@@ -48,24 +48,32 @@ void activate_target(eye_t eye)
 
     if (stereo_mode == QUAD_BUFFER)
     {
-        int buffer_id = eye == RIGHT_EYE ? GL_BACK_RIGHT : GL_BACK_LEFT;
+        int buffer_id = (eye == RIGHT_EYE) ? GL_BACK_RIGHT : GL_BACK_LEFT;
         glDrawBuffer(buffer_id);
 
-        glViewport(0, 0, buffer_width, buffer_height);
+        glViewport(0, 0, buffer_width, buffer_height);        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     else if (stereo_mode == LEFT_RIGHT)
     {
-        int x = (eye == RIGHT_EYE) ? 0.5 * buffer_width : buffer_width;
+        int x = (eye == RIGHT_EYE) ? 0.5 * buffer_width : 0;
         glViewport(x, 0, 0.5 * buffer_width, buffer_height);
+
+        if (eye == LEFT_EYE)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     else if (stereo_mode == TOP_BOTTOM)
     {
-        int y = (eye == RIGHT_EYE) ? 0.5 * buffer_height : buffer_height;
+        int y = (eye == LEFT_EYE) ? 0.5 * buffer_height : 0;
         glViewport(0, y, buffer_width, 0.5 * buffer_height);
+
+        if (eye == LEFT_EYE)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     else
     {
         glViewport(0, 0, buffer_width, buffer_height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 }
 
@@ -167,13 +175,12 @@ void compute_view(qogl_matrix_type view, const q_vec_type eye_pos)
 
 void update_perspective(eye_t eye)
 {
-    if (eye != LEFT_EYE && eye != RIGHT_EYE)
-        return;
-
     // Find the world-space position of the eye we're rendering from.
 
-    double pd_offset = (eye == CENTER) ? 0.0 :
-        ((eye == LEFT_EYE) ? -0.5 : 0.5) * pupillary_distance;
+    double pd_offset = (eye == CENTER_EYE) ? 0.0
+                                           : (eye == LEFT_EYE) ? -0.5 * pupillary_distance
+                                                               : 0.5 * pupillary_distance;
+
     q_vec_type eye_pos = {pd_offset, 0.0, 0.0};
     q_xform(eye_pos, tracker_pose.quat, eye_pos);
     q_vec_add(eye_pos, tracker_pose.xyz, eye_pos);
@@ -259,6 +266,15 @@ void draw_axes()
      glEnd();
 }
 
+void render_eye(eye_t eye)
+{
+    activate_target(eye);
+
+    update_perspective(eye);
+
+    draw_axes();
+}
+
 void on_idle()
 {
     // Let the tracker do its thing.
@@ -272,25 +288,15 @@ void on_display()
 {
     // Draw from the left eye's perspective.
 
-    activate_target(LEFT_EYE);
-
-    update_perspective(LEFT_EYE);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    draw_axes();
-
-    // Draw from the right eye's perspective.
-
-    //activate_target(RIGHT_EYE);
-
-    //update_perspective(RIGHT_EYE);
-
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //draw_axes();
+    if (stereo_mode == NO_STEREO) {
+        render_eye(CENTER_EYE);
+    } else {
+        render_eye(LEFT_EYE);
+        render_eye(RIGHT_EYE);
+    }
 
     glutSwapBuffers();
+
 }
 
 // Main entry point
