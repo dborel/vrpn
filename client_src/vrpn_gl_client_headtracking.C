@@ -7,42 +7,84 @@
 #include <math.h>
 #include <stdio.h>
 
+// This sample uses GLUT to render a grid on the XZ plane. The camera's pose and projection follow a Tracker.
+// All pose data is in OpenGL's "world space": after the model transform, but before the viewing transform.
+
+/// Specifies an eye in the stereo camera rig.
 typedef enum {
+    /// Halfway between the left and right eyes. Used for monoscopic rendering.
     CENTER_EYE = -1,
+
+    /// The left eye. -0.5 * pupillary_distance along the x axis, looking in the -z direction.
     LEFT_EYE = 0,
+
+    /// The right eye. 0.5 * pupillary_distance along the x axis, looking in the -z direction.
     RIGHT_EYE = 1
 } eye_t;
 
+/// Specifies a method for displaying stereo images. Different graphics accept stereo via different methods.
 typedef enum {
+    /// Monoscopic or "one-eyed" rendering.
     NO_STEREO = -1,
-    QUAD_BUFFER = 0,
-    LEFT_RIGHT = 1,
-    TOP_BOTTOM = 2
-    //TODO: Support interlaced, etc.
-} stereo_mode_t;
 
-// This sample uses GLUT to render a grid on the XZ plane. The camera's pose and projection follow a Tracker.
+    /// Each eye is rendered at full resolution, to its own back-buffer.
+    QUAD_BUFFER = 0,
+
+    /// Both eyes are rendered to the same back-buffer at half-resolution. The left eye gets the left half of the buffer.
+    LEFT_RIGHT = 1,
+
+    /// Both eyes are rendered to the same back-buffer at half-resolution. The left eye gets the top half of the buffer.
+    TOP_BOTTOM = 2
+
+    //TODO: Support interlaced, NVIDIA 3D Vision, HD3D, etc.
+} stereo_mode_t;
 
 // Global variables
 
+/// Controls the stereo frame encoding method. Choose a method appropriate for your GPU and monitor.
 stereo_mode_t stereo_mode = NO_STEREO;
-double pupillary_distance = 0.06;
-double z_near = 0.01;
-double z_far = 100.0;
-q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
-int buffer_width = 800;
-int buffer_height = 600;
-double dpi = 1000;
-double viewport_width = buffer_width / dpi;
-double viewport_height = buffer_height / dpi;
 
+/// The distance (in meters) between the user's eyes.
+double pupillary_distance = 0.06;
+
+/// The distance from either of the user's eyes to the near-clipping plane.
+double z_near = 0.01;
+
+/// The distance from either of the user's eyes to the far-clipping plane.
+double z_far = 100.0;
+
+/// The display's position and rotation in world space.
+q_xyz_quat_type viewport_pose = { {0, 0, 0}, {0, 0, 0, 1} };
+
+/// The horizontal resolution of the 3D viewport.
+int buffer_width = 800;
+
+/// The vertical resolution of the 3D viewport.
+int buffer_height = 600;
+
+/// The number of screen pixels per meter. Determines the virtual size of the viewport.
+double pixel_density = 1000;
+
+/// The 3D viewport's horizontal size in meters.
+double viewport_width = buffer_width / pixel_density;
+
+/// The 3D viewport's vertical size in meters.
+double viewport_height = buffer_height / pixel_density;
+
+/// Tracks the user's head.
 vrpn_Tracker_Remote* tracker;
+
+/// The position and rotation of the sensor tracking the user's head in world space.
 q_xyz_quat_type sensor_pose = { {0, 0.1, 5}, {0, 0, 0, 1} };
+
+/// The current position and rotation of the user's head in world space.
 q_xyz_quat_type tracker_pose = { {0, 0, 0}, {0, 0, 0, 1} };
 
 // Helper functions
 
-void activate_target(eye_t eye)
+/// Prepares the system to render a frame for the given eye.
+/// Performs any necessary buffer activation and clearing.
+void begin_frame(eye_t eye)
 {
     // Select the right buffer and set the viewport position and size.
 
@@ -77,6 +119,16 @@ void activate_target(eye_t eye)
     }
 }
 
+/// Presents a frame that has been rendered for the given eye.
+void end_frame(eye_t eye)
+{
+    if (eye != LEFT_EYE || stereo_mode == QUAD_BUFFER)
+        glutSwapBuffers();
+}
+
+/// Computes a projection matrix for the given perspective projection.
+/// Supports off-axis (asymmetric) frusta such as for stereo or head-tracked rendering.
+/// Generates the same matrix you would get from calling glFrustum(...).
 void compute_frustum(qogl_matrix_type frustum, double left, double right, double top, double bottom, double zNear, double zFar)
 {
     if (frustum == NULL)
@@ -102,13 +154,8 @@ void compute_frustum(qogl_matrix_type frustum, double left, double right, double
     memcpy(frustum, result, sizeof(result));
 }
 
-void compute_perspective(qogl_matrix_type proj, double fovY, double aspect, double zNear, double zFar)
-{
-    double fH = tan( fovY / 360 * Q_PI ) * zNear;
-    double fW = fH * aspect;
-    compute_frustum(proj, -fW, fW, -fH, fH, zNear, zFar);
-}
-
+/// Computes a view matrix for the given camera position and rotation.
+/// Generates the same matrix you would get from calling gluLookAt(...).
 void compute_look_at(qogl_matrix_type view, const q_vec_type eye_pos,
                      const q_vec_type look_at_pos, const q_vec_type up_dir)
 {
@@ -136,6 +183,7 @@ void compute_look_at(qogl_matrix_type view, const q_vec_type eye_pos,
        view[i] = result[i];
 }
 
+/// Computes a physically-correct projection matrix for the given eye position and the current viewport pose.
 void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
 {
     // Find the display in camera space. Note its rotation matches the camera's.
@@ -159,6 +207,7 @@ void compute_projection(qogl_matrix_type proj, const q_vec_type eye_pos)
     compute_frustum(proj, left, right, top, bottom, z_near, z_far);
 }
 
+/// Computes a viewing matrix (inverse camera pose) for the given eye position and the current viewport pose.
 void compute_view(qogl_matrix_type view, const q_vec_type eye_pos)
 {
     // Make the camera match the display's rotation.
@@ -173,6 +222,7 @@ void compute_view(qogl_matrix_type view, const q_vec_type eye_pos)
     compute_look_at(view, eye_pos, look_at, up);
 }
 
+/// Applies correct viewing and projection matrices for the given eye position and the current viewport pose.
 void update_perspective(eye_t eye)
 {
     // Find the world-space position of the eye we're rendering from.
@@ -202,6 +252,7 @@ void update_perspective(eye_t eye)
     glLoadMatrixd(view);
 }
 
+/// A callback that computes the current head pose when new Tracker data arrives.
 void VRPN_CALLBACK handle_tracker(void *userdata, const vrpn_TRACKERCB t)
 {
   q_xyz_quat_type* pq = (q_xyz_quat_type*) userdata;
@@ -215,6 +266,7 @@ void VRPN_CALLBACK handle_tracker(void *userdata, const vrpn_TRACKERCB t)
   q_mult(pq->quat, sensor_pose.quat, t.quat);
 }
 
+/// Configures OpenGL for rendering.
 void init_graphics()
 {
   // Set up OpenGL.
@@ -246,7 +298,8 @@ void init_graphics()
   glEnable(GL_COLOR_MATERIAL);
 }
 
-void draw_axes()
+/// Renders all 3D geometry in the scene.
+void draw_scene()
 {
      // Draw Coordinate Axes
 
@@ -266,24 +319,19 @@ void draw_axes()
      glEnd();
 }
 
+/// Sets up and renders a perspective-correct image for the given eye.
 void render_eye(eye_t eye)
 {
-    activate_target(eye);
+    begin_frame(eye);
 
     update_perspective(eye);
 
-    draw_axes();
+    draw_scene();
+
+    end_frame(eye);
 }
 
-void on_idle()
-{
-    // Let the tracker do its thing.
-
-    tracker->mainloop();
-    
-    glutPostRedisplay();
-}
-
+/// A callback that updates the left and right (or center) images when GLUT requests a screen redraw.
 void on_display()
 {
     // Draw from the left eye's perspective.
@@ -294,13 +342,19 @@ void on_display()
         render_eye(LEFT_EYE);
         render_eye(RIGHT_EYE);
     }
-
-    glutSwapBuffers();
-
 }
 
-// Main entry point
+/// A callback that checks for new Tracker data and initiates a screen redraw when GLUT is idle.
+void on_idle()
+{
+    // Let the tracker do its thing.
 
+    tracker->mainloop();
+
+    glutPostRedisplay();
+}
+
+/// The main entry point.
 int main(int argc, char **argv)
 {
   // Parse command line.
