@@ -83,7 +83,7 @@ class vrpn_Leap_Device{
 vrpn_Leap::vrpn_Leap(const char *name, vrpn_Connection *c)
     : vrpn_Analog(name, c)
 {
-	vrpn_Analog::num_channel = 6 * MAX_POINTABLES;
+	vrpn_Analog::num_channel = 6 * MAX_POINTABLES + 3 * MAX_HANDS;
 	memset(channel, 0, sizeof(channel));
 	memset(last, 0, sizeof(last));
 
@@ -112,21 +112,36 @@ void vrpn_Leap::mainloop()
     {
 		if (d_device->d_ids[i] == -1)
 			continue;
+
+		// Get the Leap data structures.
 		
         const Leap::Pointable& p = frame.pointable(d_device->d_ids[i]);
         const Leap::Hand& h = frame.hand(d_device->d_ids[i]);
         if (!p.isValid() && !h.isValid())
             continue;
 
+		// Get the current finger tracking state.
+
         Leap::Vector position = (h.isValid()) ? h.palmPosition() : p.tipPosition();
         Leap::Vector d = (h.isValid()) ? h.direction() : p.direction();
 		Leap::Vector rotation(d.pitch(), d.yaw(), 0);
+
+		// Pack the data into analog channels.
 
         for (int j = 0; j < 3; ++j)
         {
             channel[6*i + j] = position[j];
             channel[6*i + j + 3] = rotation[j];
         }
+
+		// Save the grab, pinch, and confidence values in the last 3 analog channels.
+
+		if (i < MAX_HANDS)
+		{
+			channel[6 * MAX_POINTABLES + i * MAX_HANDS    ] = h.grabStrength();
+			channel[6 * MAX_POINTABLES + i * MAX_HANDS + 1] = h.pinchStrength();
+			channel[6 * MAX_POINTABLES + i * MAX_HANDS + 2] = h.confidence();
+		}
     }
 
     vrpn_gettimeofday(&_timestamp, NULL);
