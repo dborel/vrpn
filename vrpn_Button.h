@@ -5,6 +5,7 @@
 #include "vrpn_Configure.h"             // for VRPN_API, VRPN_CALLBACK
 #include "vrpn_Shared.h"                // for timeval
 #include "vrpn_Types.h"                 // for vrpn_int32, vrpn_float64, etc
+#include "vrpn_Analog.h"                // for vrpn_Analog_Remote
 
 class VRPN_API vrpn_Connection;
 struct vrpn_HANDLERPARAM;
@@ -125,6 +126,24 @@ public:
 
 protected:
 	vrpn_float64	_update_rate;	// How often to toggle
+};
+
+// Button device that activates when an analog device exceeds a threshold.
+class VRPN_API vrpn_Threshold_Button_Server: public vrpn_Button_Filter {
+public:
+	vrpn_Threshold_Button_Server(const char *name, vrpn_Connection *c,
+		int channel = 0, vrpn_float64 treshold = 0.5);
+	~vrpn_Threshold_Button_Server();
+
+	virtual void mainloop();
+
+protected:
+	static void	VRPN_CALLBACK handle_analog_update(void * userdata,
+		const vrpn_ANALOGCB info);
+
+	vrpn_Analog_Remote*	_analog;		// Analog device driving the button
+	vrpn_int32			_channel_id;	// The analog channel driving the button
+	vrpn_float64		_threshold;		// Button activates when analog exceeds this
 };
 
 

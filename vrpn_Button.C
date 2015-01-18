@@ -493,6 +493,43 @@ void vrpn_Button_Example_Server::mainloop()
 	}
 }
 
+vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, vrpn_Connection *c,
+	int channel, vrpn_float64 treshold)
+	: vrpn_Button_Filter(name, c)
+	, _analog(NULL)
+{
+	_analog = new vrpn_Analog_Remote(name, c);
+	_analog->register_change_handler(this, handle_analog_update);
+}
+
+vrpn_Threshold_Button_Server::~vrpn_Threshold_Button_Server()
+{
+	_analog->unregister_change_handler(this, handle_analog_update);
+	delete _analog;
+}
+
+void	VRPN_CALLBACK vrpn_Threshold_Button_Server::handle_analog_update
+(void *userdata, const vrpn_ANALOGCB info)
+{
+	// Set button filter state based on threshold.
+	vrpn_Threshold_Button_Server	*srv = (vrpn_Threshold_Button_Server *)userdata;
+	double value = info.channel[srv->_channel_id];
+
+	srv->buttons[0] = (value >= srv->_threshold) ? 1 : 0;
+}
+
+void vrpn_Threshold_Button_Server::mainloop()
+{
+	//TODO: Set button filter state based on threshold.
+
+	server_mainloop();
+
+	if (_analog)
+		_analog->mainloop();
+
+	report_changes();
+}
+
 
 // changed to take raw port hex address
 vrpn_Button_Parallel::vrpn_Button_Parallel(const char *name,
