@@ -708,6 +708,29 @@ int vrpn_Generic_Server_Object::setup_Example_Button (char * & pch, char * line,
   return 0;
 }
 
+int vrpn_Generic_Server_Object::setup_Threshold_Button (char * & pch, char * line, FILE * /*config_file*/)
+{
+  char s2 [LINESIZE];
+  int i1;
+  float f1;
+
+  VRPN_CONFIG_NEXT();
+
+  // Get the arguments (class, device_name, number_of_buttone, toggle_rate)
+  if (sscanf (pch, "%511s%d%g", s2, &i1, &f1) != 3) {
+    fprintf (stderr, "Bad vrpn_Threshold_Button line: %s\n", line);
+    return -1;
+  }
+
+  // Open the button
+  if (verbose) printf (
+      "Opening vrpn_Threshold_Button: %s with %d sensors, toggle rate %f\n",
+      s2, i1, f1);
+  _devices->add(new vrpn_Threshold_Button_Server(s2, connection, i1, f1));
+
+  return 0;
+}
+
 int vrpn_Generic_Server_Object::setup_Example_Dial(char * & pch, char * line, FILE * /*config_file*/)
 {
   char s2 [LINESIZE];
@@ -4086,6 +4109,8 @@ vrpn_Generic_Server_Object::vrpn_Generic_Server_Object (vrpn_Connection *connect
         VRPN_CHECK (setup_Joywin32);
       } else if (VRPN_ISIT ("vrpn_Button_Example")) {
         VRPN_CHECK (setup_Example_Button);
+      } else if (VRPN_ISIT ("vrpn_Threshold_Button")) {
+        VRPN_CHECK (setup_Threshold_Button);
       } else if (VRPN_ISIT ("vrpn_Dial_Example")) {
         VRPN_CHECK (setup_Example_Dial);
       } else if (VRPN_ISIT ("vrpn_CerealBox")) {
