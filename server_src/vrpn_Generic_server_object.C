@@ -712,21 +712,21 @@ int vrpn_Generic_Server_Object::setup_Threshold_Button (char * & pch, char * lin
 {
   char s2 [LINESIZE], s3[LINESIZE];
   int i1;
-  float f1;
+  float f1, f2;
 
   VRPN_CONFIG_NEXT();
 
   // Get the arguments (class, device_name, number_of_buttone, toggle_rate)
-  if (sscanf (pch, "%511s%511s%d%g", s2, s3, &i1, &f1) != 4) {
+  if (sscanf (pch, "%511s%511s%d%g", s2, s3, &i1, &f1, &f2) != 5) {
     fprintf (stderr, "Bad vrpn_Threshold_Button line: %s\n", line);
     return -1;
   }
 
   // Open the button
   if (verbose) printf (
-      "Opening vrpn_Threshold_Button: %s with sensor %d, threshold %f\n",
-      s2, i1, f1);
-  _devices->add(new vrpn_Threshold_Button_Server(s2, s3, connection, i1, f1));
+      "Opening vrpn_Threshold_Button: %s with sensor %d, threshold_on %f, threshold_off %f\n",
+      s2, i1, f1, f2);
+  _devices->add(new vrpn_Threshold_Button_Server(s2, s3, connection, i1, f1, f2));
 
   return 0;
 }

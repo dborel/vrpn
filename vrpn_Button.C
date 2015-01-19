@@ -494,10 +494,11 @@ void vrpn_Button_Example_Server::mainloop()
 }
 
 vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, const char *device, vrpn_Connection *c,
-	int channel, vrpn_float64 threshold)
+	int channel, vrpn_float64 threshold_on, vrpn_float64 threshold_off)
 	: vrpn_Button_Filter(name, c)
 	, _channel_id(channel)
-	, _threshold(threshold)
+	, _threshold_on(threshold_on)
+	, _threshold_off(threshold_off)
 	, _analog(NULL)
 {
 	num_buttons = 1;
@@ -525,7 +526,12 @@ void	VRPN_CALLBACK vrpn_Threshold_Button_Server::handle_analog_update
 	vrpn_Threshold_Button_Server	*srv = (vrpn_Threshold_Button_Server *)userdata;
 	double value = info.channel[srv->_channel_id];
 
-	srv->buttons[0] = (value >= srv->_threshold) ? 1 : 0;
+	const int button_id = 0;
+
+	if (value >= srv->_threshold_on)
+		srv->buttons[button_id] = 1;
+	else if (value <= srv->_threshold_off)
+		srv->buttons[button_id] = 0;
 }
 
 void vrpn_Threshold_Button_Server::mainloop()

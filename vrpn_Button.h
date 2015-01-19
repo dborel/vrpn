@@ -132,7 +132,7 @@ protected:
 class VRPN_API vrpn_Threshold_Button_Server: public vrpn_Button_Filter {
 public:
 	vrpn_Threshold_Button_Server(const char *name, const char *device, vrpn_Connection *c,
-		int channel = 0, vrpn_float64 treshold = 0.5);
+		int channel_id = 0, vrpn_float64 treshold_on = 0.5, vrpn_float64 threshold_off = 0.5);
 	~vrpn_Threshold_Button_Server();
 
 	virtual void mainloop();
@@ -143,7 +143,8 @@ protected:
 
 	vrpn_Analog_Remote*	_analog;		// Analog device driving the button
 	vrpn_int32			_channel_id;	// The analog channel driving the button
-	vrpn_float64		_threshold;		// Button activates when analog exceeds this
+	vrpn_float64		_threshold_on;	// Button activates when analog exceeds this
+	vrpn_float64		_threshold_off;	// Button deactivates when analog falls below this
 };
 
 
