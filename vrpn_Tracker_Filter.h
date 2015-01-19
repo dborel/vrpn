@@ -15,6 +15,7 @@
 // Internal Includes
 #include "quat.h"                       // for q_vec_type
 #include "vrpn_Tracker.h"               // for vrpn_Tracker
+#include "vrpn_Analog.h"                // for vrpn_Analog
 #include "vrpn_OneEuroFilter.h"
 
 /** @brief Tracker filter based on the one-Euro filter by Jan Ciger
@@ -58,3 +59,31 @@ class VRPN_API vrpn_Tracker_FilterOneEuro: public vrpn_Tracker {
     static void VRPN_CALLBACK handle_tracker_update(void *userdata, const vrpn_TRACKERCB info);
 };
 
+
+/** @brief Differential tracker filter
+
+This class reads values from the specified tracker, then differentiates its values
+and reports them as another analog. This lets you filter any device type.
+*/
+
+class VRPN_API vrpn_Analog_FilterDiff : public vrpn_Analog {
+public:
+	// name is the name that the filtered reports go out under
+	// analogcon is the server connection to use to send filtered reports on
+	// listen_analog_name is the name of the analog we listen to to filter
+	//    If the analog should use the server connection, then put * in
+	//    front of the name.
+	vrpn_Analog_FilterDiff(const char * name, vrpn_Connection * analogcon,
+		const char *listen_analog_name);
+	~vrpn_Analog_FilterDiff();
+
+	virtual void mainloop();
+
+private:
+	struct timeval  *d_last_report_times;     // Last time of report for each analog.
+	vrpn_Analog_Remote   *d_listen_analog;  // Analog we get our reports from
+
+	// Callback handler to deal with getting messages from the analog we're
+	// listening to.  It filters them and then sends them on.
+	static void VRPN_CALLBACK handle_analog_update(void *userdata, const vrpn_ANALOGCB info);
+};

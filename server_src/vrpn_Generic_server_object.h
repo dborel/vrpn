@@ -122,6 +122,7 @@ class vrpn_Generic_Server_Object
     int setup_Analog_5dtUSB_Glove14Left (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Analog_5dtUSB_Glove14Right (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_FilterOneEuro (char * &pch, char * line, FILE * /*config_file*/);
+    int setup_Analog_FilterDiff (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_zSight (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_ViewPoint (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Atmel (char * &pch, char * line, FILE * /*config_file*/);

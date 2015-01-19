@@ -85,7 +85,7 @@
 #include "vrpn_Tracker_PDI.h"
 #include "vrpn_Tracker_PhaseSpace.h"
 #include "vrpn_Tracker_RazerHydra.h"    // for vrpn_Tracker_RazerHydra
-#include "vrpn_Tracker_Filter.h"        // for vrpn_Tracker_FilterOneEuro
+#include "vrpn_Tracker_Filter.h"        // for vrpn_Tracker_FilterOneEuro and vrpn_Analog_FilterDiff
 #include "vrpn_Tracker_SpacePoint.h"    // for vrpn_Tracker_SpacePoint
 #include "vrpn_Tracker_TrivisioColibri.h" // added by David Borland
 #include "vrpn_Tracker_ViewPoint.h" // added by David Borland
@@ -3710,6 +3710,25 @@ int vrpn_Generic_Server_Object::setup_Tracker_FilterOneEuro (char * &pch, char *
   return 0;  // successful completion
 }
 
+int vrpn_Generic_Server_Object::setup_Analog_FilterDiff(char * &pch, char * line, FILE * /*config_file*/)
+{
+	char s2[LINESIZE], s3[LINESIZE];
+
+	VRPN_CONFIG_NEXT();
+	if (sscanf(pch, "%511s%511s", s2, s3) != 3) {
+		fprintf(stderr, "Bad FilterDiff line: %s\n", line);
+		return -1;
+	}
+
+	// Open the Filter
+	if (verbose) {
+		printf("Opening vrpn_Analog_FilterDiff as device %s\n", s2);
+	}
+	_devices->add(new vrpn_Analog_FilterDiff(s2, connection, s3));
+
+	return 0;  // successful completion
+}
+
 int vrpn_Generic_Server_Object::setup_Tracker_zSight (char * & pch, char * line, FILE * /*config_file*/)
 {
   char s2 [LINESIZE];
@@ -4311,6 +4330,8 @@ vrpn_Generic_Server_Object::vrpn_Generic_Server_Object (vrpn_Connection *connect
         VRPN_CHECK (setup_Analog_5dtUSB_Glove14Right);
       } else if (VRPN_ISIT ("vrpn_Tracker_FilterOneEuro")) {
         VRPN_CHECK (setup_Tracker_FilterOneEuro);
+      } else if (VRPN_ISIT ("vrpn_Analog_FilterDiff")) {
+        VRPN_CHECK (setup_Analog_FilterDiff);
       } else if (VRPN_ISIT ("vrpn_Tracker_RazerHydra")) {
         VRPN_CHECK (setup_Tracker_RazerHydra);
       } else if (VRPN_ISIT ("vrpn_Tracker_zSight")) {
