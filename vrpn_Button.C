@@ -505,9 +505,9 @@ vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, vrp
 	// If the name starts with the '*' character, use the server
 	// connection rather than making a new one.
 	if (name[0] == '*')
-		_analog = new vrpn_Analog_Remote(&name[1]);
+		_analog = new vrpn_Analog_Remote(&name[1], c);
 	else
-		_analog = new vrpn_Analog_Remote(name, c);
+		_analog = new vrpn_Analog_Remote(name);
 
 	_analog->register_change_handler(this, handle_analog_update);
 }
