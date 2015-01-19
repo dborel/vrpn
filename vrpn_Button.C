@@ -493,7 +493,7 @@ void vrpn_Button_Example_Server::mainloop()
 	}
 }
 
-vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, vrpn_Connection *c,
+vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, const char *device, vrpn_Connection *c,
 	int channel, vrpn_float64 threshold)
 	: vrpn_Button_Filter(name, c)
 	, _channel_id(channel)
@@ -504,10 +504,10 @@ vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, vrp
 
 	// If the name starts with the '*' character, use the server
 	// connection rather than making a new one.
-	if (name[0] == '*')
-		_analog = new vrpn_Analog_Remote(&name[1], c);
+	if (device[0] == '*')
+		_analog = new vrpn_Analog_Remote(&device[1], c);
 	else
-		_analog = new vrpn_Analog_Remote(name);
+		_analog = new vrpn_Analog_Remote(device);
 
 	_analog->register_change_handler(this, handle_analog_update);
 }

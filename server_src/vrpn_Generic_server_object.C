@@ -726,7 +726,7 @@ int vrpn_Generic_Server_Object::setup_Threshold_Button (char * & pch, char * lin
   if (verbose) printf (
       "Opening vrpn_Threshold_Button: %s with sensor %d, threshold %f\n",
       s2, i1, f1);
-  _devices->add(new vrpn_Threshold_Button_Server(s2, connection, i1, f1));
+  _devices->add(new vrpn_Threshold_Button_Server(s2, s3, connection, i1, f1));
 
   return 0;
 }

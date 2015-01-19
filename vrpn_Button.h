@@ -131,7 +131,7 @@ protected:
 // Button device that activates when an analog device exceeds a threshold.
 class VRPN_API vrpn_Threshold_Button_Server: public vrpn_Button_Filter {
 public:
-	vrpn_Threshold_Button_Server(const char *name, vrpn_Connection *c,
+	vrpn_Threshold_Button_Server(const char *name, const char *device, vrpn_Connection *c,
 		int channel = 0, vrpn_float64 treshold = 0.5);
 	~vrpn_Threshold_Button_Server();
 
