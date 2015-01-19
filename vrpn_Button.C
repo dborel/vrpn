@@ -494,8 +494,10 @@ void vrpn_Button_Example_Server::mainloop()
 }
 
 vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, vrpn_Connection *c,
-	int channel, vrpn_float64 treshold)
+	int channel, vrpn_float64 threshold)
 	: vrpn_Button_Filter(name, c)
+	, _channel_id(channel)
+	, _threshold(threshold)
 	, _analog(NULL)
 {
 	_analog = new vrpn_Analog_Remote(name, c);
