@@ -503,6 +503,12 @@ vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, con
 {
 	num_buttons = 1;
 
+	for (vrpn_int32 i = 0; i < num_buttons; i++) {
+		buttons[i] = lastbuttons[i] = 0;
+	}
+
+	vrpn_gettimeofday(&timestamp, NULL);
+
 	// If the name starts with the '*' character, use the server
 	// connection rather than making a new one.
 	if (device[0] == '*')
