@@ -493,6 +493,65 @@ void vrpn_Button_Example_Server::mainloop()
 	}
 }
 
+vrpn_Threshold_Button_Server::vrpn_Threshold_Button_Server(const char *name, const char *device, vrpn_Connection *c,
+	int channel, vrpn_float64 threshold_on, vrpn_float64 threshold_off)
+	: vrpn_Button_Filter(name, c)
+	, _channel_id(channel)
+	, _threshold_on(threshold_on)
+	, _threshold_off(threshold_off)
+	, _analog(NULL)
+{
+	num_buttons = 1;
+
+	for (vrpn_int32 i = 0; i < num_buttons; i++) {
+		buttons[i] = lastbuttons[i] = 0;
+	}
+
+	vrpn_gettimeofday(&timestamp, NULL);
+
+	// If the name starts with the '*' character, use the server
+	// connection rather than making a new one.
+	if (device[0] == '*')
+		_analog = new vrpn_Analog_Remote(&device[1], c);
+	else
+		_analog = new vrpn_Analog_Remote(device);
+
+	_analog->register_change_handler(this, handle_analog_update);
+}
+
+vrpn_Threshold_Button_Server::~vrpn_Threshold_Button_Server()
+{
+	_analog->unregister_change_handler(this, handle_analog_update);
+	delete _analog;
+}
+
+void	VRPN_CALLBACK vrpn_Threshold_Button_Server::handle_analog_update
+(void *userdata, const vrpn_ANALOGCB info)
+{
+	// Set button filter state based on threshold.
+	vrpn_Threshold_Button_Server	*srv = (vrpn_Threshold_Button_Server *)userdata;
+	double value = info.channel[srv->_channel_id];
+
+	const int button_id = 0;
+
+	if (value >= srv->_threshold_on)
+		srv->buttons[button_id] = 1;
+	else if (value <= srv->_threshold_off)
+		srv->buttons[button_id] = 0;
+}
+
+void vrpn_Threshold_Button_Server::mainloop()
+{
+	//TODO: Set button filter state based on threshold.
+
+	server_mainloop();
+
+	if (_analog)
+		_analog->mainloop();
+
+	report_changes();
+}
+
 
 // changed to take raw port hex address
 vrpn_Button_Parallel::vrpn_Button_Parallel(const char *name,

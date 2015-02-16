@@ -47,6 +47,7 @@ class vrpn_Generic_Server_Object
     int setup_Tracker_ButtonFly (char * & pch, char * line, FILE * config_file);
     int setup_Joystick (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Example_Button (char * & pch, char * line, FILE * /*config_file*/);
+    int setup_Threshold_Button (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Example_Dial (char * & pch, char * line, FILE * /*config_file*/);
     int setup_CerealBox (char * & pch, char * line, FILE * /*config_file*/);
     int setup_Magellan (char * & pch, char * line, FILE * /*config_file*/);
@@ -121,6 +122,7 @@ class vrpn_Generic_Server_Object
     int setup_Analog_5dtUSB_Glove14Left (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Analog_5dtUSB_Glove14Right (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_FilterOneEuro (char * &pch, char * line, FILE * /*config_file*/);
+    int setup_Analog_FilterDiff (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_zSight (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Tracker_ViewPoint (char * &pch, char * line, FILE * /*config_file*/);
     int setup_Atmel (char * &pch, char * line, FILE * /*config_file*/);

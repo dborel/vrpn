@@ -2,8 +2,18 @@
 #include "vrpn_Configure.h"
 #include "quat.h"
 
+<<<<<<< HEAD
 #include <OpenGL/gl.h>
 #include <GLUT/glut.h>
+=======
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
+#else
+#include <GL/gl.h>
+#include <GL/glut.h>
+#endif
+>>>>>>> origin/leap2
 #include <math.h>
 #include <stdio.h>
 

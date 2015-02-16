@@ -119,3 +119,84 @@ void vrpn_Tracker_FilterOneEuro::mainloop()
   // server update
   vrpn_Tracker::server_mainloop();
 }
+
+// Exposes Analog's current and last channel values to avoid extra buffering.
+class ExposedAnalog : public vrpn_Analog
+{
+public:
+	vrpn_float64 GetChannel(vrpn_int32 i) const { return channel[i]; }
+	vrpn_float64 GetLast(vrpn_int32 i) const { return last[i]; }
+};
+
+void VRPN_CALLBACK vrpn_Analog_FilterDiff::handle_analog_update(void *userdata, const vrpn_ANALOGCB info)
+{
+	// Get pointer to the object we're dealing with.
+	vrpn_Analog_FilterDiff *me = static_cast<vrpn_Analog_FilterDiff *>(userdata);
+
+	//// Filter the position and orientation and then report the filtered value
+	//// for this channel.  Keep track of the delta-time, and update our current
+	//// time so we get the right one next time.
+	//double dt = vrpn_TimevalDurationSeconds(info.msg_time, me->d_last_report_times[info.sensor]);
+	//if (dt <= 0) { dt = 1; }  // Avoid divide-by-zero in case of fluke.
+	//vrpn_float64 pos[3];
+	//vrpn_float64 quat[4];
+	//memcpy(pos, info.pos, sizeof(pos));
+	//memcpy(quat, info.quat, sizeof(quat));
+	//const vrpn_float64 *filtered;//FIXME = me->d_filters[info.sensor].filter(dt, pos);
+	//q_vec_copy(me->pos, filtered);
+	//const double *q_filtered;//FIXME = me->d_qfilters[info.sensor].filter(dt, quat);
+	//q_normalize(me->d_quat, q_filtered);
+	//me->timestamp = info.msg_time;
+	//me->d_sensor = info.sensor;
+	//me->d_last_report_times[info.sensor] = info.msg_time;
+
+	for (int i = 0; i < info.num_channel; ++i)
+	{
+		ExposedAnalog* analog = (ExposedAnalog*)me->d_listen_analog;
+		me->channel[i] = analog->GetChannel(i) - analog->GetLast(i);
+	}
+}
+
+vrpn_Analog_FilterDiff::vrpn_Analog_FilterDiff(const char * name, vrpn_Connection * con,
+	const char *listen_analog_name)
+	: vrpn_Analog(name, con)
+{
+	// Allocate space for the times.  Fill them in with now.
+	d_last_report_times = new struct timeval[vrpn_CHANNEL_MAX];
+	if (d_last_report_times == NULL) {
+		fprintf(stderr, "vrpn_Analog_FilterDiff::vrpn_Analog_FilterDiff(): Out of memory\n");
+		return;
+	}
+
+	vrpn_gettimeofday(&timestamp, NULL);
+
+	// Open and set up callback handler for the tracker we're listening to.
+	// If the name starts with the '*' character, use the server
+	// connection rather than making a new one.
+	if (listen_analog_name[0] == '*') {
+		d_listen_analog = new vrpn_Analog_Remote(&(listen_analog_name[1]),
+			d_connection);
+	}
+	else {
+		d_listen_analog = new vrpn_Analog_Remote(listen_analog_name);
+	}
+	d_listen_analog->register_change_handler(this, handle_analog_update);
+}
+
+vrpn_Analog_FilterDiff::~vrpn_Analog_FilterDiff()
+{
+	d_listen_analog->unregister_change_handler(this, handle_analog_update);
+	delete d_listen_analog;
+	if (d_last_report_times) { delete[] d_last_report_times; d_last_report_times = NULL; }
+}
+
+void vrpn_Analog_FilterDiff::mainloop()
+{
+	// See if we have anything new from our tracker.
+	d_listen_analog->mainloop();
+
+	// server update
+	vrpn_Analog::server_mainloop();
+
+	report_changes();
+}
