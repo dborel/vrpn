@@ -2,8 +2,8 @@
 #include "vrpn_Configure.h"
 #include "quat.h"
 
-#include <GL/gl.h>
-#include <GL/glut.h>
+#include <OpenGL/gl.h>
+#include <GLUT/glut.h>
 #include <math.h>
 #include <stdio.h>
 

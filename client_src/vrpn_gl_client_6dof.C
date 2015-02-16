@@ -2,9 +2,9 @@
 #include "vrpn_Configure.h"
 #include "quat.h"
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#include <GLUT/glut.h>
 #include <stdio.h>
 
 // This sample uses GLUT to render a Tracker's pose as a pair of 3D spheres along with a grid on the XZ plane.

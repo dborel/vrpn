@@ -32,8 +32,8 @@ if(WIN32)
 	set(_LIBBASENAME Leap.lib)
 	set(_DLLBASENAME Leap.dll)
 else()
-	set(_LIBBASENAME libLeap.so)
-	set(_DLLBASENAME libLeap.so)
+	set(_LIBBASENAME libLeap.dylib)
+	set(_DLLBASENAME libLeap.dylib)
 endif()
 
 find_path(LEAP_INCLUDE_DIR
